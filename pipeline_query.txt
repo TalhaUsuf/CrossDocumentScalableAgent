@@ -1,0 +1,224 @@
+
+================================================================================
+  PDF SEARCH PIPELINE — QUERY FLOW
+================================================================================
+
+  Input: User question (natural language)
+  Output: Cross-PDF synthesis with citations
+
+
+                        +--------------------+
+                        |   User Question    |
+                        | "Compare auth      |
+                        |  approaches across |
+                        |  documents..."     |
+                        +---------+----------+
+                                  |
+                                  v
+                     +------------+-------------+
+                     |    decompose_query()     |
+                     |                          |
+                     |  LLM breaks complex      |
+                     |  question into 1-4       |
+                     |  independent sub-queries |
+                     |                          |
+                     |  e.g. ["auth in Python   |
+                     |  Security book",         |
+                     |  "auth in decision       |
+                     |  table"]                 |
+                     +------------+-------------+
+                                  |
+                                  v
+                     +------------+-------------+
+                     |       retrieve()         |
+                     |   Two-Stage Hybrid       |
+                     +------------+-------------+
+                                  |
+                  +===============+===============+
+                  |  STAGE 1: Doc-Level Filter   |
+                  |  (coarse — narrow to top     |
+                  |   20 candidate PDFs)         |
+                  +===============+===============+
+                                  |
+                     For each sub-query:
+                     embed query via bge-m3
+                                  |
+                  +---------------+---------------+
+                  |                               |
+                  v                               v
+          +-------+-------+              +--------+------+
+          |   BM25 Search  |              |  kNN Search   |
+          |   pdf_doc_index|              |  pdf_doc_index|
+          |   (text match  |              |  (vector sim  |
+          |    on summary) |              |   on summary) |
+          +-------+-------+              +--------+------+
+                  |                               |
+                  +-------+-----------------------+
+                          |
+                          v
+                  +-------+--------+
+                  |  Score Merge   |
+                  |  BM25: 0.3 wt  |
+                  |  kNN:  0.7 wt  |
+                  |  normalize &   |
+                  |  rank          |
+                  +-------+--------+
+                          |
+                          v
+                  Top 20 doc source_files
+                          |
+                  +===============+===============+
+                  |  STAGE 2: Chunk-Level Search  |
+                  |  (fine — scoped to top docs)  |
+                  +===============+===============+
+                          |
+                  +-------+--------+        +--------+-------+
+                  |  BM25 Search   |        |  kNN Search    |
+                  | pdf_chunk_index|        | pdf_chunk_index|
+                  | filter: top    |        | filter: top    |
+                  | doc files only |        | doc files only |
+                  +-------+--------+        +--------+-------+
+                          |                          |
+                          +----------+---------------+
+                                     |
+                                     v
+                          +----------+-----------+
+                          |  Score Merge +       |
+                          |  Doc-Rank Boost      |
+                          |  (chunks from        |
+                          |   higher-ranked      |
+                          |   docs get bonus)    |
+                          +----------+-----------+
+                                     |
+                                     v
+                           Top 15 chunks,
+                           grouped by source_file
+                                     |
+                                     v
+                     +---------------+----------------+
+                     |    dispatch_extractions()      |
+                     |    LangGraph Send() fan-out    |
+                     +----+----------+----------+-----+
+                          |          |          |
+                          v          v          v
+                   +------+---+ +---+------+ +-+--------+
+                   |  PDF A   | |  PDF B   | |  PDF C   |
+                   |  extract | |  extract | |  extract |
+                   +------+---+ +---+------+ +-+--------+
+                          |          |          |
+                          |   extract_from_pdf()
+                          |   (parallel workers)
+                          |          |          |
+                          |  For each PDF:      |
+                          |  1. Gather chunks   |
+                          |  2. Expand context  |
+                          |     +/- 2 pages     |
+                          |     from original   |
+                          |     PDF             |
+                          |  3. LLM extraction: |
+                          |     - relevant?     |
+                          |     - answer_frags  |
+                          |     - facts[]       |
+                          |     - numbers{}     |
+                          |     - page_refs[]   |
+                          |     - confidence    |
+                          |          |          |
+                          +----------+----------+
+                                     |
+                          +----------+-----------+
+                          |   Fan-in: collect    |
+                          |   all extractions[]  |
+                          |   (Annotated reducer)|
+                          +----------+-----------+
+                                     |
+                                     v
+                     +---------------+----------------+
+                     |    merge_and_check_gaps()      |
+                     |                                |
+                     |  LLM analyzes all extractions: |
+                     |  - Contradictions?             |
+                     |  - Information gaps?           |
+                     |  - Sufficient to answer?       |
+                     +---------------+----------------+
+                                     |
+                          +----------+-----------+
+                          | route_after_gap_check |
+                          +----+------------+----+
+                               |            |
+                     gaps found|            |no gaps /
+                     & count<2 |            |sufficient
+                               |            |
+                               v            v
+                     +---------+--+  +------+--------+
+                     |  Loop back |  |  synthesize() |
+                     |  to        |  +------+--------+
+                     |  retrieve()|         |
+                     |  with gap- |         v
+                     |  fill      |  +------+--------+
+                     |  queries   |  |  LLM cross-   |
+                     +------------+  |  PDF synthesis |
+                       (max 2x)     |                |
+                                    |  Instructions: |
+                                    |  1. Direct     |
+                                    |     answer     |
+                                    |  2. Cross-ref  |
+                                    |     across     |
+                                    |     PDFs       |
+                                    |  3. Cite every |
+                                    |     claim:     |
+                                    |     [file, pg] |
+                                    |  4. Tables for |
+                                    |     numeric    |
+                                    |     data       |
+                                    |  5. Flag       |
+                                    |     conflicts  |
+                                    |  6. Note gaps  |
+                                    +------+---------+
+                                           |
+                                           v
+                              +------------+------------+
+                              |        OUTPUT           |
+                              |                         |
+                              |  synthesis: str         |
+                              |    (full answer with    |
+                              |     inline citations)   |
+                              |                         |
+                              |  citations: [           |
+                              |    {file, pages[],      |
+                              |     confidence}         |
+                              |  ]                      |
+                              +-------------------------+
+
+
+================================================================================
+  SERVICES USED
+================================================================================
+
+  LLM (decompose, extract, gap-check, synthesize):
+      Qwen3-235B @ http://69.48.159.8:30005/v1
+
+  Embedding (query vectors):
+      BAAI/bge-m3 @ http://69.48.159.8:30007/v1 (1024-dim)
+
+  Vector Store (hybrid BM25 + kNN):
+      OpenSearch 3.4 @ localhost:9200
+      - pdf_doc_index   (coarse doc-level filter)
+      - pdf_chunk_index (fine chunk-level retrieval)
+
+  Orchestration:
+      LangGraph (Command/Send fan-out, Annotated fan-in)
+
+================================================================================
+  KEY PARAMETERS
+================================================================================
+
+  Chunking:     500 tokens, 50-token overlap, ~4 chars/token
+  Doc filter:   top 20 candidates
+  Chunk search: top 50 -> re-rank to 15
+  BM25 weight:  0.3
+  kNN weight:   0.7
+  Context:      expand +/- 2 pages around matched chunks
+  Gap-fill:     max 2 loop iterations
+  Max context:  80,000 tokens budget
+
+================================================================================

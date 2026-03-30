@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Search Pipeline — Benchmark Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #0a0e17;
+    --bg-secondary: #111827;
+    --bg-card: #151d2e;
+    --bg-card-hover: #1a2438;
+    --border: #1e293b;
+    --border-accent: #2a3a52;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent-green: #22c55e;
+    --accent-green-dim: #16a34a;
+    --accent-amber: #f59e0b;
+    --accent-amber-dim: #d97706;
+    --accent-red: #ef4444;
+    --accent-blue: #3b82f6;
+    --accent-cyan: #06b6d4;
+    --accent-purple: #a855f7;
+    --accent-indigo: #6366f1;
+    --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* --- HERO --- */
+  .hero {
+    padding: 4rem 0 3rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  }
+  .hero-label {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+    margin-bottom: 0.75rem;
+  }
+  .hero h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+  }
+  .hero-sub {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 2.5rem;
+  }
+  .hero-sub span {
+    color: var(--text-secondary);
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .kpi {
+    background: var(--bg-secondary);
+    padding: 1.5rem;
+    position: relative;
+  }
+  .kpi-value {
+    font-family: var(--mono);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .kpi-value.green { color: var(--accent-green); }
+  .kpi-value.amber { color: var(--accent-amber); }
+  .kpi-value.blue { color: var(--accent-blue); }
+  .kpi-value.cyan { color: var(--accent-cyan); }
+  .kpi-value.purple { color: var(--accent-purple); }
+  .kpi-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 0.35rem;
+  }
+  .kpi-detail {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+  }
+
+  /* --- SECTIONS --- */
+  section {
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  section:last-child { border-bottom: none; }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .section-number {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* --- CHART AREA --- */
+  .chart-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.5rem;
+  }
+  .chart-legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.75rem;
+  }
+  .chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-secondary);
+  }
+  .chart-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+  }
+
+  .bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 50px;
+    align-items: center;
+    gap: 12px;
+    height: 28px;
+    transition: background 0.15s;
+    padding: 0 8px;
+    border-radius: 3px;
+    cursor: default;
+  }
+  .bar-row:hover {
+    background: rgba(255,255,255,0.03);
+  }
+  .bar-label {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--mono);
+  }
+  .bar-track {
+    height: 16px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+  }
+  .bar-fill.sd { background: var(--accent-cyan); }
+  .bar-fill.cd { background: var(--accent-indigo); }
+  .bar-fill.low { background: var(--accent-amber); }
+  .bar-pct {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    text-align: right;
+  }
+
+  /* --- DETAIL GRID --- */
+  .detail-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-tab {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: var(--sans);
+  }
+  .detail-tab:hover { color: var(--text-secondary); }
+  .detail-tab.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent-cyan);
+  }
+
+  .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .detail-table th {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+  }
+  .detail-table td {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    vertical-align: middle;
+  }
+  .detail-table tr {
+    transition: background 0.12s;
+  }
+  .detail-table tbody tr:hover {
+    background: rgba(255,255,255,0.02);
+  }
+  .detail-table .mono {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+  }
+  .badge {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+  }
+  .badge-green {
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--accent-green);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+  }
+  .badge-amber {
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--accent-amber);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+  }
+  .badge-red {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--accent-red);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+  .badge-blue {
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--accent-blue);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+  .kw-bar-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+  .kw-bar-mini-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .kw-bar-mini-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s ease;
+  }
+
+  /* --- MULTI-SOURCE --- */
+  .multi-src-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .multi-src-card {
+    background: var(--bg-secondary);
+    padding: 1.25rem;
+    transition: background 0.15s;
+  }
+  .multi-src-card:hover { background: var(--bg-card-hover); }
+  .multi-src-id {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+  }
+  .multi-src-desc {
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+  .multi-src-status {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+  }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .dot-green { background: var(--accent-green); box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+  .dot-red { background: var(--accent-red); box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+
+  /* --- PIPELINE DIAGRAM --- */
+  .pipeline-flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding: 1.5rem 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pipeline-node {
+    flex-shrink: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    min-width: 160px;
+    max-width: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .pipeline-node:hover {
+    border-color: var(--accent-cyan);
+    transform: translateY(-2px);
+  }
+  .pipeline-node-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+  }
+  .pipeline-node-detail {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    line-height: 1.5;
+  }
+  .pipeline-arrow {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+  .pipeline-loop-indicator {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    color: var(--accent-amber);
+    margin-top: 0.3rem;
+  }
+
+  .tech-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+  }
+  .tech-chip {
+    padding: 0.3rem 0.75rem;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    border: 1px solid var(--border-accent);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+  }
+
+  /* --- DONUT --- */
+  .donut-section {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 2rem;
+    align-items: center;
+  }
+  .donut-wrap {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+  }
+  .donut-center-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .donut-center-value {
+    font-family: var(--mono);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent-green);
+  }
+  .donut-center-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .test-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .test-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 60px;
+    align-items: center;
+    gap: 12px;
+  }
+  .test-cat {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+  }
+  .test-bar-track {
+    height: 8px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .test-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s ease;
+  }
+  .test-count {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  /* --- PDF CORPUS --- */
+  .corpus-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .corpus-item {
+    background: var(--bg-secondary);
+    padding: 1rem 1.25rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    transition: background 0.15s;
+  }
+  .corpus-item:hover { background: var(--bg-card-hover); }
+  .corpus-num {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    min-width: 20px;
+    padding-top: 2px;
+  }
+  .corpus-info {}
+  .corpus-name {
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    line-height: 1.3;
+    margin-bottom: 0.3rem;
+  }
+  .corpus-tag {
+    display: inline-block;
+    padding: 0.05rem 0.4rem;
+    font-size: 0.6rem;
+    border-radius: 2px;
+    font-family: var(--mono);
+    letter-spacing: 0.03em;
+  }
+  .tag-healthcare { background: rgba(6,182,212,0.12); color: var(--accent-cyan); border: 1px solid rgba(6,182,212,0.2); }
+  .tag-ml { background: rgba(168,85,247,0.12); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.2); }
+  .tag-security { background: rgba(245,158,11,0.12); color: var(--accent-amber); border: 1px solid rgba(245,158,11,0.2); }
+  .tag-architecture { background: rgba(99,102,241,0.12); color: var(--accent-indigo); border: 1px solid rgba(99,102,241,0.2); }
+  .tag-geopolitics { background: rgba(239,68,68,0.12); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.2); }
+  .tag-ai { background: rgba(59,130,246,0.12); color: var(--accent-blue); border: 1px solid rgba(59,130,246,0.2); }
+
+  /* --- SCROLL ANIMATION --- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* --- RESPONSIVE --- */
+  @media (max-width: 768px) {
+    .container { padding: 0 1rem; }
+    .hero h1 { font-size: 1.5rem; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .kpi-value { font-size: 1.5rem; }
+    .donut-section { grid-template-columns: 1fr; }
+    .bar-row { grid-template-columns: 120px 1fr 40px; }
+    .bar-label { font-size: 0.65rem; }
+    .pipeline-flow { padding: 1rem 0; }
+    .section-header { flex-direction: column; gap: 0.25rem; }
+  }
+
+  /* --- FOOTER --- */
+  footer {
+    padding: 2rem 0;
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="container">
+  <header class="hero reveal">
+    <div class="hero-label">Benchmark Report</div>
+    <h1>PDF Search Pipeline</h1>
+    <p class="hero-sub">22 evaluation queries across 10 PDFs &mdash; <span>42 min runtime</span> &mdash; 30 tests passed</p>
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-value green">100%</div>
+        <div class="kpi-label">Source Match</div>
+        <div class="kpi-detail">22 / 22</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value amber">76.0%</div>
+        <div class="kpi-label">Keyword Coverage</div>
+        <div class="kpi-detail">114 / 150</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value blue">50%</div>
+        <div class="kpi-label">Multi-Source</div>
+        <div class="kpi-detail">11 / 22</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value cyan">42m</div>
+        <div class="kpi-label">Runtime</div>
+        <div class="kpi-detail">22 questions</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value purple">30</div>
+        <div class="kpi-label">Tests Passed</div>
+        <div class="kpi-detail">30 / 30</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SECTION 1: KEYWORD COVERAGE CHART -->
+  <section class="reveal">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2 class="section-title">Keyword Coverage by Question</h2>
+    </div>
+    <div class="chart-container">
+      <div class="chart-legend">
+        <div class="chart-legend-item">
+          <div class="chart-legend-dot" style="background:var(--accent-cyan)"></div>
+          Single Document
+        </div>
+        <div class="chart-legend-item">
+          <div class="chart-legend-dot" style="background:var(--accent-indigo)"></div>
+          Cross Document
+        </div>
+        <div class="chart-legend-item">
+          <div class="chart-legend-dot" style="background:var(--accent-amber)"></div>
+          Below 60%
+        </div>
+      </div>
+      <div class="bar-chart" id="kwChart"></div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: PER-QUESTION DETAIL -->
+  <section class="reveal">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2 class="section-title">Per-Question Results</h2>
+    </div>
+    <div class="chart-container" style="padding:0;overflow:hidden;">
+      <div class="detail-tabs">
+        <button class="detail-tab active" data-tab="all">All (22)</button>
+        <button class="detail-tab" data-tab="sd">Single-Doc (10)</button>
+        <button class="detail-tab" data-tab="cd">Cross-Doc (12)</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th style="width:70px">ID</th>
+              <th>Question</th>
+              <th style="width:80px">Source</th>
+              <th style="width:80px">KW Hits</th>
+              <th style="width:200px">Coverage</th>
+              <th style="width:80px">Multi-Src</th>
+            </tr>
+          </thead>
+          <tbody id="detailBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: CROSS-DOCUMENT ANALYSIS -->
+  <section class="reveal">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2 class="section-title">Cross-Document Source Analysis</h2>
+    </div>
+    <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1.25rem;">
+      11 of 12 cross-document queries successfully cited multiple PDF sources. One question (cd_012) retrieved from a single document despite spanning multiple topics.
+    </p>
+    <div class="multi-src-grid" id="multiSrcGrid"></div>
+  </section>
+
+  <!-- SECTION 4: PIPELINE ARCHITECTURE -->
+  <section class="reveal">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <h2 class="section-title">Pipeline Architecture</h2>
+    </div>
+    <div class="chart-container" style="overflow-x:auto;">
+      <div class="pipeline-flow">
+        <div class="pipeline-node">
+          <div class="pipeline-node-label">User Question</div>
+          <div class="pipeline-node-detail">Natural language input</div>
+        </div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-node">
+          <div class="pipeline-node-label">Query Decomposition</div>
+          <div class="pipeline-node-detail">Qwen3-235B<br>sub-query generation</div>
+        </div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-node">
+          <div class="pipeline-node-label">Stage 1: Doc Retrieval</div>
+          <div class="pipeline-node-detail">BM25 + kNN<br>document-level ranking</div>
+        </div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-node">
+          <div class="pipeline-node-label">Stage 2: Chunk Retrieval</div>
+          <div class="pipeline-node-detail">BM25 + kNN<br>chunk-level re-rank</div>
+        </div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-node">
+          <div class="pipeline-node-label">Fan-out Extraction</div>
+          <div class="pipeline-node-detail">LangGraph<br>Command/Send<br>per-PDF parallel</div>
+        </div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-node">
+          <div class="pipeline-node-label">Fan-in Merge</div>
+          <div class="pipeline-node-detail">Aggregate partial answers</div>
+        </div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-node">
+          <div class="pipeline-node-label">Gap-Fill Check</div>
+          <div class="pipeline-node-detail">Conditional loop<br>back to retrieval</div>
+          <div class="pipeline-loop-indicator">&#x21bb; loop if gaps</div>
+        </div>
+        <div class="pipeline-arrow">&rarr;</div>
+        <div class="pipeline-node">
+          <div class="pipeline-node-label">Cross-PDF Synthesis</div>
+          <div class="pipeline-node-detail">Final answer with<br>inline citations</div>
+        </div>
+      </div>
+      <div class="tech-chips">
+        <span class="tech-chip">Qwen3-235B LLM</span>
+        <span class="tech-chip">BAAI/bge-m3 1024-dim</span>
+        <span class="tech-chip">OpenSearch 3.4</span>
+        <span class="tech-chip">Hybrid BM25 + Vector</span>
+        <span class="tech-chip">LangGraph</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: TEST SUITE -->
+  <section class="reveal">
+    <div class="section-header">
+      <span class="section-number">05</span>
+      <h2 class="section-title">Test Suite Summary</h2>
+    </div>
+    <div class="chart-container">
+      <div class="donut-section">
+        <div class="donut-wrap">
+          <canvas id="donutChart" width="200" height="200"></canvas>
+          <div class="donut-center-text">
+            <div class="donut-center-value">30</div>
+            <div class="donut-center-label">Passed</div>
+          </div>
+        </div>
+        <div class="test-breakdown">
+          <div class="test-row">
+            <span class="test-cat">Unit Tests</span>
+            <div class="test-bar-track">
+              <div class="test-bar-fill" style="width:30%;background:var(--accent-cyan);" data-target="30"></div>
+            </div>
+            <span class="test-count">9</span>
+          </div>
+          <div class="test-row">
+            <span class="test-cat">Integration Tests</span>
+            <div class="test-bar-track">
+              <div class="test-bar-fill" style="width:40%;background:var(--accent-indigo);" data-target="40"></div>
+            </div>
+            <span class="test-count">12</span>
+          </div>
+          <div class="test-row">
+            <span class="test-cat">Pipeline Tests</span>
+            <div class="test-bar-track">
+              <div class="test-bar-fill" style="width:23.3%;background:var(--accent-purple);" data-target="23.3"></div>
+            </div>
+            <span class="test-count">7</span>
+          </div>
+          <div class="test-row">
+            <span class="test-cat">Benchmark Tests</span>
+            <div class="test-bar-track">
+              <div class="test-bar-fill" style="width:6.7%;background:var(--accent-green);" data-target="6.7"></div>
+            </div>
+            <span class="test-count">2</span>
+          </div>
+          <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <div class="dot dot-green"></div>
+              <span style="font-size:0.75rem;color:var(--accent-green);font-family:var(--mono);">ALL PASSED</span>
+              <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto;">0 failures, 0 errors</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: PDF CORPUS -->
+  <section class="reveal">
+    <div class="section-header">
+      <span class="section-number">06</span>
+      <h2 class="section-title">PDF Corpus</h2>
+    </div>
+    <div class="corpus-grid" id="corpusGrid"></div>
+  </section>
+
+  <footer>
+    Generated 2026-03-30 &mdash; PDF Search Pipeline Benchmark v1.0
+  </footer>
+</div>
+
+<script>
+// --- DATA ---
+const sdQuestions = [
+  { id:'sd_001', desc:'HealthLink FHIR resource types', src:true, kwHits:6, kwTotal:6, pct:100.0 },
+  { id:'sd_002', desc:'AWQ mathematical transformation', src:true, kwHits:4, kwTotal:5, pct:80.0 },
+  { id:'sd_003', desc:'Python Security password hashing (Argon2)', src:true, kwHits:2, kwTotal:3, pct:66.7 },
+  { id:'sd_004', desc:'Auth decision table JWT+API keys', src:true, kwHits:4, kwTotal:5, pct:80.0 },
+  { id:'sd_005', desc:'Multi-agent orchestration patterns', src:true, kwHits:11, kwTotal:11, pct:100.0 },
+  { id:'sd_006', desc:'RAND Muslim categorization strategy', src:true, kwHits:4, kwTotal:5, pct:80.0 },
+  { id:'sd_007', desc:'Alhai LLM/embedding models', src:true, kwHits:3, kwTotal:3, pct:100.0 },
+  { id:'sd_008', desc:'Clash of civilizations origin', src:true, kwHits:5, kwTotal:5, pct:100.0 },
+  { id:'sd_009', desc:'AWQ W4A16 quantization scheme', src:true, kwHits:3, kwTotal:5, pct:60.0 },
+  { id:'sd_010', desc:'RAND Cold War precedent', src:true, kwHits:4, kwTotal:5, pct:80.0 },
+];
+
+const cdQuestions = [
+  { id:'cd_001', desc:'Python Security vs Auth table comparison', src:true, kwHits:6, kwTotal:8, pct:75.0, multi:true },
+  { id:'cd_002', desc:'Alhai dual auth vs decision table', src:true, kwHits:8, kwTotal:8, pct:100.0, multi:true },
+  { id:'cd_003', desc:'Muslim networks synthesis (3 PDFs)', src:true, kwHits:4, kwTotal:9, pct:44.4, multi:true },
+  { id:'cd_004', desc:'HMAC implementation comparison', src:true, kwHits:7, kwTotal:8, pct:87.5, multi:true },
+  { id:'cd_005', desc:'Islamic radicalism sources + critique', src:true, kwHits:4, kwTotal:8, pct:50.0, multi:true },
+  { id:'cd_006', desc:'HealthLink vs Alhai API security', src:true, kwHits:7, kwTotal:8, pct:87.5, multi:true },
+  { id:'cd_007', desc:'Vector/semantic search aggregation', src:true, kwHits:5, kwTotal:5, pct:100.0, multi:true },
+  { id:'cd_008', desc:'Orchestration patterns vs Alhai architecture', src:true, kwHits:7, kwTotal:7, pct:100.0, multi:true },
+  { id:'cd_009', desc:'API security across all tech docs', src:true, kwHits:5, kwTotal:10, pct:50.0, multi:true },
+  { id:'cd_010', desc:'RAND recommendations evolution 2004-2007', src:true, kwHits:4, kwTotal:9, pct:44.4, multi:true },
+  { id:'cd_011', desc:'AWQ mappings vs orchestration patterns', src:true, kwHits:4, kwTotal:8, pct:50.0, multi:true },
+  { id:'cd_012', desc:'Healthcare standards across docs', src:true, kwHits:7, kwTotal:9, pct:77.8, multi:false },
+];
+
+const allQuestions = [
+  ...sdQuestions.map(q => ({...q, type:'sd', multi:false})),
+  ...cdQuestions.map(q => ({...q, type:'cd'})),
+];
+
+const pdfs = [
+  { name:'HealthLink Directory Services v4.4.pdf', tag:'Healthcare', tagClass:'tag-healthcare' },
+  { name:'AWQ_Mappings_Comprehensive_Guide.pdf', tag:'ML/Quantization', tagClass:'tag-ml' },
+  { name:'Full Stack Python Security (Dennis Byrne)', tag:'Security', tagClass:'tag-security' },
+  { name:'authentication_decision_table.pdf', tag:'Security', tagClass:'tag-security' },
+  { name:'Documentation.pdf', tag:'Architecture', tagClass:'tag-architecture' },
+  { name:'multi_agent_orchestration_patterns.pdf', tag:'AI/Agents', tagClass:'tag-ai' },
+  { name:'Alhai Documentation.pdf', tag:'Architecture', tagClass:'tag-architecture' },
+  { name:'The Muslim World After 9/11 (Rabasa 2004)', tag:'Geopolitics', tagClass:'tag-geopolitics' },
+  { name:'Building Moderate Muslim Networks 2007', tag:'Geopolitics', tagClass:'tag-geopolitics' },
+  { name:'think_tanks_islam_muslim_countries_report.pdf', tag:'Geopolitics', tagClass:'tag-geopolitics' },
+];
+
+// --- RENDER BAR CHART ---
+function renderBarChart() {
+  const container = document.getElementById('kwChart');
+  // sort by pct descending
+  const sorted = [...allQuestions].sort((a,b) => b.pct - a.pct);
+  sorted.forEach(q => {
+    const isLow = q.pct < 60;
+    const cls = isLow ? 'low' : q.type;
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.title = q.desc;
+    row.innerHTML = `
+      <div class="bar-label">${q.id}</div>
+      <div class="bar-track">
+        <div class="bar-fill ${cls}" style="width:0%" data-target="${q.pct}"></div>
+      </div>
+      <div class="bar-pct">${q.pct.toFixed(1)}%</div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// --- RENDER DETAIL TABLE ---
+function renderDetailTable(filter) {
+  const body = document.getElementById('detailBody');
+  body.innerHTML = '';
+  const data = filter === 'all' ? allQuestions : allQuestions.filter(q => q.type === filter);
+  data.forEach(q => {
+    const badgeClass = q.pct >= 80 ? 'badge-green' : q.pct >= 60 ? 'badge-amber' : 'badge-red';
+    const fillColor = q.pct >= 80 ? 'var(--accent-green)' : q.pct >= 60 ? 'var(--accent-amber)' : 'var(--accent-red)';
+    const multiHtml = q.type === 'cd'
+      ? (q.multi ? '<span class="badge badge-blue">YES</span>' : '<span class="badge badge-red">NO</span>')
+      : '<span style="color:var(--text-muted);font-size:0.7rem;">&mdash;</span>';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mono">${q.id}</td>
+      <td style="color:var(--text-secondary)">${q.desc}</td>
+      <td><span class="badge badge-green">MATCH</span></td>
+      <td class="mono">${q.kwHits} / ${q.kwTotal}</td>
+      <td>
+        <div class="kw-bar-mini">
+          <div class="kw-bar-mini-track">
+            <div class="kw-bar-mini-fill" style="width:${q.pct}%;background:${fillColor}"></div>
+          </div>
+          <span class="badge ${badgeClass}">${q.pct.toFixed(1)}%</span>
+        </div>
+      </td>
+      <td>${multiHtml}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+// --- RENDER MULTI-SOURCE GRID ---
+function renderMultiSrc() {
+  const grid = document.getElementById('multiSrcGrid');
+  cdQuestions.forEach(q => {
+    const card = document.createElement('div');
+    card.className = 'multi-src-card';
+    const dotClass = q.multi ? 'dot-green' : 'dot-red';
+    const statusText = q.multi ? 'Multi-source confirmed' : 'Single source only';
+    const statusColor = q.multi ? 'var(--accent-green)' : 'var(--accent-red)';
+    card.innerHTML = `
+      <div class="multi-src-id">${q.id}</div>
+      <div class="multi-src-desc">${q.desc}</div>
+      <div class="multi-src-status">
+        <div class="dot ${dotClass}"></div>
+        <span style="color:${statusColor}">${statusText}</span>
+        <span style="margin-left:auto;font-family:var(--mono);color:var(--text-muted);font-size:0.65rem;">${q.pct.toFixed(1)}% kw</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// --- RENDER CORPUS ---
+function renderCorpus() {
+  const grid = document.getElementById('corpusGrid');
+  pdfs.forEach((p, i) => {
+    const item = document.createElement('div');
+    item.className = 'corpus-item';
+    item.innerHTML = `
+      <div class="corpus-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="corpus-info">
+        <div class="corpus-name">${p.name}</div>
+        <span class="corpus-tag ${p.tagClass}">${p.tag}</span>
+      </div>
+    `;
+    grid.appendChild(item);
+  });
+}
+
+// --- TABS ---
+document.querySelectorAll('.detail-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    renderDetailTable(tab.dataset.tab);
+  });
+});
+
+// --- DONUT CHART ---
+function renderDonut() {
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Unit', 'Integration', 'Pipeline', 'Benchmark'],
+      datasets: [{
+        data: [9, 12, 7, 2],
+        backgroundColor: [
+          'rgb(6, 182, 212)',
+          'rgb(99, 102, 241)',
+          'rgb(168, 85, 247)',
+          'rgb(34, 197, 94)',
+        ],
+        borderColor: 'rgb(17, 24, 39)',
+        borderWidth: 3,
+        hoverOffset: 4,
+      }]
+    },
+    options: {
+      cutout: '72%',
+      responsive: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgb(21, 29, 46)',
+          titleColor: '#e2e8f0',
+          bodyColor: '#94a3b8',
+          borderColor: '#1e293b',
+          borderWidth: 1,
+          padding: 10,
+          bodyFont: { family: "'SF Mono', 'Consolas', monospace", size: 12 },
+          callbacks: {
+            label: (ctx) => `${ctx.label}: ${ctx.raw} tests — PASSED`
+          }
+        }
+      }
+    }
+  });
+}
+
+// --- SCROLL REVEAL ---
+function setupReveal() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        // animate bars inside this section
+        entry.target.querySelectorAll('.bar-fill').forEach(bar => {
+          setTimeout(() => {
+            bar.style.width = bar.dataset.target + '%';
+          }, 100);
+        });
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+}
+
+// --- INIT ---
+document.addEventListener('DOMContentLoaded', () => {
+  renderBarChart();
+  renderDetailTable('all');
+  renderMultiSrc();
+  renderCorpus();
+  renderDonut();
+  setupReveal();
+});
+</script>
+</body>
+</html>

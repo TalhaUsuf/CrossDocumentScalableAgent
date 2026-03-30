@@ -1,0 +1,252 @@
+{
+  "metadata": {
+    "created": "2026-03-30",
+    "total_questions": 22,
+    "pdf_files": [
+      "HealthLink Directory Services v4.4.pdf",
+      "AWQ_Mappings_Comprehensive_Guide.pdf",
+      "Full Stack Python Security Cryptography, TLS, and attack resistance (Dennis Byrne) (Z-Library).pdf",
+      "authentication_decision_table.pdf",
+      "Documentation.pdf",
+      "multi_agent_orchestration_patterns.pdf",
+      "Alhai Documentation.pdf",
+      "Angel M. Rabasa - The Muslim World After 9 11 (2004) - libgen.li.pdf",
+      "Building Moderate Muslim Networks 2007.pdf",
+      "think_tanks_islam_muslim_countries_report.pdf"
+    ]
+  },
+  "single_document": [
+    {
+      "id": "sd_001",
+      "question": "What six FHIR resource types are included in the HealthLink Directory Service?",
+      "expected_source_files": ["HealthLink Directory Services v4.4.pdf"],
+      "expected_answer_contains": ["Practitioner", "Location", "Organisation", "Endpoint", "HealthcareService", "PractitionerRole"],
+      "difficulty": "easy",
+      "category": "factual"
+    },
+    {
+      "id": "sd_002",
+      "question": "In AWQ (Activation-aware Weight Quantization), what is the mathematical transformation that preserves model output while making weights easier to quantize?",
+      "expected_source_files": ["AWQ_Mappings_Comprehensive_Guide.pdf"],
+      "expected_answer_contains": ["scale weights", "scale activations", "equivalent transformation", "W' = s * W", "x' = x / s"],
+      "difficulty": "medium",
+      "category": "factual"
+    },
+    {
+      "id": "sd_003",
+      "question": "According to the Full Stack Python Security book, what password hashing algorithm does it recommend migrating to, and what is the Add-Migrate-Delete pattern used for?",
+      "expected_source_files": ["Full Stack Python Security Cryptography, TLS, and attack resistance (Dennis Byrne) (Z-Library).pdf"],
+      "expected_answer_contains": ["Argon2", "migration", "password hashers"],
+      "difficulty": "medium",
+      "category": "factual"
+    },
+    {
+      "id": "sd_004",
+      "question": "According to the authentication decision table, when should you use both JWT tokens and API keys together?",
+      "expected_source_files": ["authentication_decision_table.pdf"],
+      "expected_answer_contains": ["SaaS Web App", "Enterprise B2B", "E-commerce", "mixed", "user initiates, system continues"],
+      "difficulty": "easy",
+      "category": "factual"
+    },
+    {
+      "id": "sd_005",
+      "question": "What are the 10 multi-agent orchestration patterns identified in the comprehensive guide, and which framework is used for implementation?",
+      "expected_source_files": ["multi_agent_orchestration_patterns.pdf"],
+      "expected_answer_contains": ["Supervisor", "Sequential", "Plan and Execute", "Swarm", "Hierarchical", "Blackboard", "Consensus", "Parallel", "Market-Based", "Adaptive", "LangGraph"],
+      "difficulty": "medium",
+      "category": "factual"
+    },
+    {
+      "id": "sd_006",
+      "question": "What four groups did the RAND report 'Civil Democratic Islam' categorize Muslims into, and what was the recommended strategy?",
+      "expected_source_files": ["think_tanks_islam_muslim_countries_report.pdf"],
+      "expected_answer_contains": ["fundamentalists", "traditionalists", "modernists", "secularists", "support the modernists"],
+      "difficulty": "easy",
+      "category": "factual"
+    },
+    {
+      "id": "sd_007",
+      "question": "What LLM model and embedding model does the Alhai Data Intelligence platform use for its RAG-based chat system?",
+      "expected_source_files": ["Documentation.pdf"],
+      "expected_answer_contains": ["Llama 3.1 70B", "BGE-M3", "OpenSearch"],
+      "difficulty": "medium",
+      "category": "factual"
+    },
+    {
+      "id": "sd_008",
+      "question": "Who coined the phrase 'clash of civilizations' and what was Edward Said's response to this thesis?",
+      "expected_source_files": ["think_tanks_islam_muslim_countries_report.pdf"],
+      "expected_answer_contains": ["Bernard Lewis", "Huntington", "Clash of Ignorance", "Edward Said", "racism"],
+      "difficulty": "medium",
+      "category": "factual"
+    },
+    {
+      "id": "sd_009",
+      "question": "What W4A16 quantization scheme does AWQ use, and why is it called 'activation-aware'?",
+      "expected_source_files": ["AWQ_Mappings_Comprehensive_Guide.pdf"],
+      "expected_answer_contains": ["4 bits", "16 bits", "activation distributions", "salient weights", "1%"],
+      "difficulty": "easy",
+      "category": "factual"
+    },
+    {
+      "id": "sd_010",
+      "question": "What Cold War precedent did the RAND report 'Building Moderate Muslim Networks' draw on, and what three networking challenges did it compare between the Cold War and the Middle East?",
+      "expected_source_files": ["Building Moderate Muslim Networks 2007.pdf"],
+      "expected_answer_contains": ["Cold War", "civil society", "Congress of Cultural Freedom", "anti-totalitarian", "network building"],
+      "difficulty": "hard",
+      "category": "analytical"
+    }
+  ],
+  "cross_document": [
+    {
+      "id": "cd_001",
+      "question": "Compare the authentication approaches described in the Full Stack Python Security book versus the authentication decision table. When does each source recommend JWT tokens versus API keys?",
+      "expected_source_files": [
+        "Full Stack Python Security Cryptography, TLS, and attack resistance (Dennis Byrne) (Z-Library).pdf",
+        "authentication_decision_table.pdf"
+      ],
+      "expected_answer_contains": ["JWT", "API key", "session management", "cookies", "stateless", "human user", "automated", "OAuth"],
+      "difficulty": "medium",
+      "cross_document_aspect": "comparison",
+      "category": "analytical"
+    },
+    {
+      "id": "cd_002",
+      "question": "How does the Alhai Documentation platform implement dual authentication (JWT + API keys with HMAC), and how does this align with the recommendations in the authentication decision table for SaaS web applications?",
+      "expected_source_files": [
+        "Documentation.pdf",
+        "authentication_decision_table.pdf"
+      ],
+      "expected_answer_contains": ["JWT", "API key", "HMAC-SHA256", "SaaS Web App", "users", "integrations", "dual authentication", "bcrypt"],
+      "difficulty": "hard",
+      "cross_document_aspect": "comparison",
+      "category": "analytical"
+    },
+    {
+      "id": "cd_003",
+      "question": "Synthesize all perspectives on building moderate Muslim networks across the three Islam-related documents. What strategies were recommended by RAND, and what criticisms were raised?",
+      "expected_source_files": [
+        "Angel M. Rabasa - The Muslim World After 9 11 (2004) - libgen.li.pdf",
+        "Building Moderate Muslim Networks 2007.pdf",
+        "think_tanks_islam_muslim_countries_report.pdf"
+      ],
+      "expected_answer_contains": ["moderate networks", "Cold War", "war of ideas", "Wahhabi", "neo-colonialism", "Angel Rabasa", "Cheryl Benard", "diasporas", "Southeast Asia"],
+      "difficulty": "hard",
+      "cross_document_aspect": "synthesis",
+      "category": "analytical"
+    },
+    {
+      "id": "cd_004",
+      "question": "Both the Full Stack Python Security book and the Alhai Documentation describe HMAC-based authentication. Compare their implementations, including the specific algorithms and the data included in the signature.",
+      "expected_source_files": [
+        "Full Stack Python Security Cryptography, TLS, and attack resistance (Dennis Byrne) (Z-Library).pdf",
+        "Documentation.pdf"
+      ],
+      "expected_answer_contains": ["HMAC-SHA256", "canonical_string", "timestamp", "nonce", "X-Signature", "shared_key", "keyed hashing", "hashlib"],
+      "difficulty": "hard",
+      "cross_document_aspect": "comparison",
+      "category": "analytical"
+    },
+    {
+      "id": "cd_005",
+      "question": "What role does the concept of 'sources of Islamic radicalism' play in both 'The Muslim World After 9/11' and the 'Building Moderate Muslim Networks' report, and how does the think tanks report critique this framing?",
+      "expected_source_files": [
+        "Angel M. Rabasa - The Muslim World After 9 11 (2004) - libgen.li.pdf",
+        "Building Moderate Muslim Networks 2007.pdf",
+        "think_tanks_islam_muslim_countries_report.pdf"
+      ],
+      "expected_answer_contains": ["structural factors", "Saudi funding", "Wahhabi", "authoritarian", "mosque", "Western responsibility", "colonialism", "Mosaddeq"],
+      "difficulty": "hard",
+      "cross_document_aspect": "contradiction",
+      "category": "analytical"
+    },
+    {
+      "id": "cd_006",
+      "question": "Compare how the HealthLink Directory Services API and the Alhai Data Intelligence platform API handle authentication and access control. What standards does each follow?",
+      "expected_source_files": [
+        "HealthLink Directory Services v4.4.pdf",
+        "Documentation.pdf"
+      ],
+      "expected_answer_contains": ["API key", "Apigee", "TLS 1.2", "FHIR", "JWT", "HMAC", "rate limiting", "FastAPI"],
+      "difficulty": "medium",
+      "cross_document_aspect": "comparison",
+      "category": "analytical"
+    },
+    {
+      "id": "cd_007",
+      "question": "List all documents that discuss vector search or semantic search capabilities. What embedding models and search technologies are mentioned across these documents?",
+      "expected_source_files": [
+        "Documentation.pdf",
+        "AWQ_Mappings_Comprehensive_Guide.pdf",
+        "multi_agent_orchestration_patterns.pdf"
+      ],
+      "expected_answer_contains": ["OpenSearch", "BGE-M3", "vector embeddings", "semantic search", "RAG"],
+      "difficulty": "medium",
+      "cross_document_aspect": "aggregation",
+      "category": "factual"
+    },
+    {
+      "id": "cd_008",
+      "question": "How do the multi-agent orchestration patterns relate to the architecture of the Alhai platform? Could the Alhai document processing pipeline be modeled as one of the orchestration patterns?",
+      "expected_source_files": [
+        "multi_agent_orchestration_patterns.pdf",
+        "Documentation.pdf"
+      ],
+      "expected_answer_contains": ["Sequential", "Pipeline", "Dramatiq", "RabbitMQ", "worker", "document processing", "async"],
+      "difficulty": "hard",
+      "cross_document_aspect": "synthesis",
+      "category": "analytical"
+    },
+    {
+      "id": "cd_009",
+      "question": "Across all technical documentation PDFs, what are the different approaches to API security mentioned? List the security mechanisms from each document.",
+      "expected_source_files": [
+        "HealthLink Directory Services v4.4.pdf",
+        "Full Stack Python Security Cryptography, TLS, and attack resistance (Dennis Byrne) (Z-Library).pdf",
+        "authentication_decision_table.pdf",
+        "Documentation.pdf"
+      ],
+      "expected_answer_contains": ["TLS", "API key", "JWT", "HMAC", "CSRF", "CORS", "Content Security Policy", "Apigee", "rate limiting", "AES-256"],
+      "difficulty": "hard",
+      "cross_document_aspect": "aggregation",
+      "category": "analytical"
+    },
+    {
+      "id": "cd_010",
+      "question": "The 'Muslim World After 9/11' report and the 'Building Moderate Muslim Networks' report were both produced by RAND Corporation. How did the recommendations evolve from 2004 to 2007, and what did the think tanks report say about the impact of these RAND reports?",
+      "expected_source_files": [
+        "Angel M. Rabasa - The Muslim World After 9 11 (2004) - libgen.li.pdf",
+        "Building Moderate Muslim Networks 2007.pdf",
+        "think_tanks_islam_muslim_countries_report.pdf"
+      ],
+      "expected_answer_contains": ["RAND", "Angel Rabasa", "Cheryl Benard", "moderate networks", "Cold War", "road map", "Civil Democratic Islam", "categorizing Muslims", "Smith Richardson Foundation"],
+      "difficulty": "hard",
+      "cross_document_aspect": "synthesis",
+      "category": "analytical"
+    },
+    {
+      "id": "cd_011",
+      "question": "Both the AWQ Mappings guide and the multi-agent orchestration patterns document describe systems with specific architectural patterns. Compare the concept of 'mappings' in AWQ with 'orchestration patterns' in multi-agent systems - how do both define relationships between components?",
+      "expected_source_files": [
+        "AWQ_Mappings_Comprehensive_Guide.pdf",
+        "multi_agent_orchestration_patterns.pdf"
+      ],
+      "expected_answer_contains": ["smooth_layer", "balance_layers", "Supervisor", "data flow", "nodes", "edges", "StateGraph", "direct connection"],
+      "difficulty": "hard",
+      "cross_document_aspect": "comparison",
+      "category": "analytical"
+    },
+    {
+      "id": "cd_012",
+      "question": "What healthcare-related standards and technologies are discussed across the HealthLink Directory Services document and the Alhai Documentation? How do both platforms handle directory or document search?",
+      "expected_source_files": [
+        "HealthLink Directory Services v4.4.pdf",
+        "Documentation.pdf"
+      ],
+      "expected_answer_contains": ["FHIR", "HL7", "RESTful", "JSON", "OpenSearch", "federated", "vector search", "Practitioner", "Location"],
+      "difficulty": "medium",
+      "cross_document_aspect": "comparison",
+      "category": "analytical"
+    }
+  ]
+}

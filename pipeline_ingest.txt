@@ -1,0 +1,113 @@
+
+================================================================================
+  PDF SEARCH PIPELINE — INGESTION FLOW
+================================================================================
+
+  Input: Directory of PDF files
+  Output: Two OpenSearch indexes (doc-level + chunk-level)
+
+
+                          +-------------------+
+                          |    PDF Directory   |
+                          +--------+----------+
+                                   |
+                                   v
+                     +-------------+--------------+
+                     |      discover_pdfs()       |
+                     |  Scan dir, find all *.pdf  |
+                     |  Group into batches of 50  |
+                     +-------------+--------------+
+                                   |
+                    +--------------+--------------+
+                    |     LangGraph Send()        |
+                    |   (dynamic fan-out)         |
+                    +-+----------+----------+-----+
+                      |          |          |
+                      v          v          v
+              +-------+--+ +----+-----+ +--+-------+
+              | Batch 1  | | Batch 2  | | Batch N  |   process_pdf_batch()
+              +-------+--+ +----+-----+ +--+-------+   (parallel workers)
+                      |          |          |
+                      |    Per PDF in batch: |
+                      |          |          |
+                      |  +-------+-------+  |
+                      |  |               |  |
+                      |  v               v  |
+                      |  extract_pdf_    |  |
+                      |  text()          |  |
+                      |  (PyMuPDF)       |  |
+                      |  page-by-page    |  |
+                      |       |          |  |
+                      |       v          |  |
+                      |  chunk_pages()   |  |
+                      |  overlapping     |  |
+                      |  500-token       |  |
+                      |  chunks w/       |  |
+                      |  50-token        |  |
+                      |  overlap         |  |
+                      |       |          |  |
+                      |       v          |  |
+                      |  summarize_      |  |
+                      |  document()      |  |
+                      |  (LLM: first     |  |
+                      |   5 pages ->     |  |
+                      |   2-3 sentence   |  |
+                      |   summary)       |  |
+                      |       |          |  |
+                      |  +----+----+     |  |
+                      |  | chunks  |     |  |
+                      |  | + doc   |     |  |
+                      |  | record  |     |  |
+                      |  +----+----+     |  |
+                      |       |          |  |
+                      +-------+----------+--+
+                              |
+                    +---------+---------+
+                    |   Fan-in: merge   |
+                    |   all_chunks[]    |
+                    |   doc_records[]   |
+                    +---------+---------+
+                              |
+                              v
+                  +-----------+------------+
+                  |    embed_and_store()   |
+                  +-----------+------------+
+                              |
+              +---------------+---------------+
+              |                               |
+              v                               v
+   +----------+----------+       +------------+-----------+
+   |  Doc Summaries      |       |  Chunks                |
+   |  embed via bge-m3   |       |  embed via bge-m3      |
+   |  (1024-dim vectors) |       |  (1024-dim vectors)    |
+   |  batch size: 64     |       |  batch size: 64        |
+   +----------+----------+       |  bulk index: 500/batch |
+              |                  +------------+-----------+
+              |                               |
+              v                               v
+   +----------+----------+       +------------+-----------+
+   |  OpenSearch          |       |  OpenSearch            |
+   |  pdf_doc_index       |       |  pdf_chunk_index       |
+   |                      |       |                        |
+   |  Fields:             |       |  Fields:               |
+   |  - source_file       |       |  - chunk_id            |
+   |  - filename          |       |  - source_file         |
+   |  - summary (text)    |       |  - pages[]             |
+   |  - total_pages       |       |  - text                |
+   |  - embedding (knn)   |       |  - embedding (knn)     |
+   |                      |       |                        |
+   |  kNN: HNSW/faiss     |       |  kNN: HNSW/faiss       |
+   |  cosine similarity   |       |  cosine similarity     |
+   |  2 shards            |       |  4 shards              |
+   +----------------------+       +------------------------+
+
+
+================================================================================
+  SERVICES USED
+================================================================================
+
+  LLM (summarization):  Qwen3-235B @ http://69.48.159.8:30005/v1
+  Embedding:            BAAI/bge-m3 @ http://69.48.159.8:30007/v1 (1024-dim)
+  Vector Store:         OpenSearch 3.4 @ localhost:9200
+
+================================================================================

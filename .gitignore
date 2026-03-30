@@ -1,0 +1,24 @@
+# Sensitive files — NEVER push
+.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Logs & databases
+logs/
+*.db
+nohup.out
+
+# Node
+node_modules/
+
+# Non-pipeline project files
+deepfocus-frontend/
+backend.py
+init_db.py
+run.sh
+
+# Claude Code config
+.claude/
